@@ -15,9 +15,8 @@ import pprint
 import numpy as np
 import PIL.Image  # pillow
 
-
 def load_ipynb(filename):
-    r"""
+    """
     Load a jupyter notebook .ipynb file (JSON) as a Python dict.
 
     Usage:
@@ -50,7 +49,18 @@ def load_ipynb(filename):
          'nbformat': 4,
          'nbformat_minor': 5}
     """
-    pass
+    #import json
+    #f = open(filename,)
+    #return json.loads(filename)
+    
+    json_file_path = filename
+
+    with open(json_file_path, 'r') as j:
+        contents = json.loads(j.read())
+    return contents
+
+
+load_ipynb("samples/minimal.ipynb")
 
 
 def save_ipynb(ipynb, filename):
