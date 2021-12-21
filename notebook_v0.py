@@ -52,7 +52,7 @@ def load_ipynb(filename):
     #import json
     #f = open(filename,)
     #return json.loads(filename)
-    
+
     json_file_path = filename
 
     with open(json_file_path, 'r') as j:
@@ -83,7 +83,14 @@ def save_ipynb(ipynb, filename):
         True
 
     """
-    pass
+    
+    with open(filename, 'w') as fp:
+        json.dump(ipynb, fp)
+
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+save_ipynb(ipynb, "samples/hello-world-save-load.ipynb")
+ipynb == load_ipynb("samples/hello-world-save-load.ipynb")
 
 
 def get_format_version(ipynb):
@@ -100,7 +107,13 @@ def get_format_version(ipynb):
         >>> get_format_version(ipynb)
         '4.5'
     """
-    pass
+    format =ipynb['nbformat']
+    format_minor = ipynb['nbformat_minor']
+    return f"{format}.{format_minor}"
+
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+get_format_version(ipynb)
 
 
 def get_metadata(ipynb):
@@ -124,7 +137,13 @@ def get_metadata(ipynb):
                            'pygments_lexer': 'ipython3',
                            'version': '3.9.7'}}
     """
-    pass
+    metadata =ipynb['metadata']
+    return metadata
+
+
+ipynb = load_ipynb("samples/metadata.ipynb")
+metadata = get_metadata(ipynb)
+pprint.pprint(metadata)
 
 
 def get_cells(ipynb):
@@ -158,7 +177,18 @@ def get_cells(ipynb):
           'metadata': {},
           'source': ['Goodbye! 👋']}]
     """
-    pass
+    cells =ipynb['cells']
+    return cells
+
+
+ipynb = load_ipynb("samples/minimal.ipynb")
+cells = get_cells(ipynb)
+cells
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+print(ipynb)
+cells = get_cells(ipynb)
+pprint.pprint(cells)
 
 
 def to_percent(ipynb):
@@ -185,7 +215,31 @@ def to_percent(ipynb):
         ...     with open(notebook_file.with_suffix(".py"), "w", encoding="utf-8") as output:
         ...         print(percent_code, file=output)
     """
-    pass
+    
+    l=[]
+    cells = get_cells(ipynb)
+    for k in range (len(cells)) :
+        cell=cells[k]
+        if cell['cell_type']=='markdown':
+            l.append('# %% [markdown]')
+            l.append('\n')
+            for i in cell['source'] : 
+                l.append('# ')
+                l.append(i)
+            l.append('\n')
+        if cell['cell_type']=='code':
+            l.append('# %%')
+            l.append('\n')
+            for i in cell['source'] : 
+                l.append(i)
+            l.append('\n')
+             
+    return str("".join(l))
+
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+print(to_percent(ipynb))
+
 
 
 def starboard_html(code):
@@ -242,8 +296,40 @@ def to_starboard(ipynb, html=False):
         ...     with open(notebook_file.with_suffix(".html"), "w", encoding="utf-8") as output:
         ...         print(starboard_html, file=output)
     """
-    pass
+    def to_staraux(ipynb):
+        l=[]
+        cells = get_cells(ipynb)
+        for k in range (len(cells)) :
+            cell=cells[k]
+            if cell['cell_type']=='markdown':
+                l.append('# %% [markdown]')
+                l.append('\n')
+                for i in cell['source'] : 
+                    l.append(i)
+                l.append('\n')
+            if cell['cell_type']=='code':
+                l.append('# %% [python]')
+                l.append('\n')
+                for i in cell['source'] : 
+                    l.append(i)
+                l.append('\n')     
+        return str("".join(l))
+        
+    if html==True:
+        return starboard_html(to_staraux(ipynb))
+    else:
+        return to_staraux(ipynb)
 
+
+# +
+ipynb = load_ipynb("samples/hello-world.ipynb")
+print(to_starboard(ipynb))
+
+html = to_starboard(ipynb, html=True)
+print(html)
+
+
+# -
 
 # Outputs
 # ------------------------------------------------------------------------------
@@ -298,8 +384,43 @@ def clear_outputs(ipynb):
          'nbformat': 4,
          'nbformat_minor': 5}
     """
-    pass
+    cells = get_cells(ipynb)
+    for k in range (len(cells)) :
+        cell=cells[k]
+        if cell['cell_type']=='code':
+            cell['execution_count']=None
+            cell['outputs']=[]
 
+
+
+# +
+ipynb =        {'cells': [{'cell_type': 'markdown',
+                    'id': 'a9541506',
+                    'metadata': {},
+                    'source': ['Hello world!\n',
+                               '============\n',
+                               'Print `Hello world!`:']},
+                   {'cell_type': 'code',
+                    'execution_count': 1,
+                    'id': 'b777420a',
+                    'metadata': {},
+                    'outputs': [{'name': 'stdout',
+                                 'output_type': 'stream',
+                                 'text': ['Hello world!\n']}],
+                    'source': ['print("Hello world!")']},
+                   {'cell_type': 'markdown',
+                    'id': 'a23ab5ac',
+                    'metadata': {},
+                    'source': ['Goodbye! 👋']}],
+         'metadata': {},
+         'nbformat': 4,
+         'nbformat_minor': 5}
+
+clear_outputs(ipynb)
+pprint.pprint(ipynb)
+
+
+# -
 
 def get_stream(ipynb, stdout=True, stderr=False):
     r"""
@@ -316,7 +437,40 @@ def get_stream(ipynb, stdout=True, stderr=False):
         👋 Hello world! 🌍
         🔥 This is fine. 🔥 (https://gunshowcomic.com/648)
     """
-    pass
+    
+                        #'outputs': [{'name': 'stdout',
+                                 #'output_type': 'stream',
+                                 #'text': ['Hello world!\n']}],
+    l=[]
+    
+    
+    cells = get_cells(ipynb)
+    for k in range (len(cells)) :
+        cell=cells[k]
+        if cell['cell_type']=='code':
+            d=cell['outputs']
+            if stdout==True:
+                if d[0]['name']=='stdout':
+                    #x=d[0]['text'][0]
+                    #y=x.replace('\n','')
+                    l.append(d[0]['text'][0])
+                    #print(d[0]['text'][0])
+            if stderr==True:
+                if d[0]['name']=='stderr':
+                    #a=d[0]['text'][0]
+                    #w=a.replace('\n','')
+                    l.append(d[0]['text'][0])
+                    #print(d[0]['text'][0])
+    if len(l)==2:
+        return "".join(l)
+    else:
+        return l[0]         
+
+ipynb = load_ipynb("samples/streams.ipynb")
+#print(ipynb)
+print(get_stream(ipynb))
+print(get_stream(ipynb, stdout=False, stderr=True))
+print(get_stream(ipynb, stdout=True, stderr=True))
 
 
 def get_exceptions(ipynb):
@@ -338,8 +492,32 @@ def get_exceptions(ipynb):
         TypeError("unsupported operand type(s) for +: 'int' and 'str'")
         Warning('🌧️  light rain')
     """
-    pass
 
+    errors = []
+    cells = get_cells(ipynb)
+    for k in range (len(cells)) :
+        cell=cells[k]
+        if cell['cell_type']=='code':
+            d=cell['outputs']
+            if d[0]['output_type']=='error':
+                errors.append((d[0]["ename"],d[0]["evalue"]))
+                #errors.append(f'{d[0]["ename"]}("{d[0]["evalue"]}")')
+    return errors
+
+
+dans ename de output
+classe expection
+
+# +
+ipynb = load_ipynb("samples/errors.ipynb")
+errors = get_exceptions(ipynb)
+print(all(isinstance(error, Exception) for error in errors))
+for error in errors:
+    print(repr(error))
+
+#isinstance(TypeError("unsupported operand type(s) for +: 'int' and 'str'"), Exception)
+#isinstance(Warning("🌧️  light rain"), Exception)
+# -
 
 def get_images(ipynb):
     r"""
@@ -362,4 +540,42 @@ def get_images(ipynb):
                 ...,
                 [ 14,  13,  19]]], dtype=uint8)
     """
-    pass
+    errors = []
+    cells = get_cells(ipynb)
+    for k in range (len(cells)) :
+        cell=cells[k]
+        if cell['cell_type']=='code':
+            d=cell['outputs']
+            if len(d)>0:
+                if 'image/png' not in d[0]['data'].keys():
+                    return d[0]['data']['text/plain']
+
+
+ipynb = load_ipynb("samples/images.ipynb")
+ipynb
+
+# +
+ipynb = load_ipynb("samples/images.ipynb")
+#print(get_images(ipynb))
+
+l=[]
+
+import ast
+
+for k in range (len(get_images(ipynb))):
+    x=get_images(ipynb)[k]
+    y=x.replace(',\n','')
+    z=y.replace(' ','')
+    a=z.replace('[ ','[')
+    b=a.replace(",'\n'","")
+    #c=ast.literal_eval(b)
+    #print(a)
+    l.append(b)
+
+l
+
+#get_images(ipynb)
+# -
+
+ #import matplotlib.pyplot as plt
+#plt.imshow(get_images(ipynb))
