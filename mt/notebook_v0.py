@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
 starter code for your evaluation assignment
 """
@@ -14,8 +15,9 @@ import pprint
 import numpy as np
 import PIL.Image  # pillow
 
+
 def load_ipynb(filename):
-    """
+    r"""
     Load a jupyter notebook .ipynb file (JSON) as a Python dict.
 
     Usage:
@@ -48,10 +50,9 @@ def load_ipynb(filename):
          'nbformat': 4,
          'nbformat_minor': 5}
     """
-
-    with open(filename,'rb') as j:
-        contents=json.loads(j.read())
-    return contents
+    with open(filename,'rb') as file:
+        loaded_file=json.loads(file.read())
+    return loaded_file
 
 
 def save_ipynb(ipynb, filename):
@@ -74,9 +75,8 @@ def save_ipynb(ipynb, filename):
         True
 
     """
-    
-    with open(filename,'w') as fp:
-        json.dump(ipynb, fp)
+    with open(filename,"w") as file:
+        json.dump(ipynb,file)
 
 
 def get_format_version(ipynb):
@@ -123,11 +123,6 @@ def get_metadata(ipynb):
     return metadata
 
 
-ipynb = load_ipynb("samples/metadata.ipynb")
-metadata = get_metadata(ipynb)
-pprint.pprint(metadata)
-
-
 def get_cells(ipynb):
     r"""
     Return the notebook cells.
@@ -163,16 +158,6 @@ def get_cells(ipynb):
     return cells
 
 
-ipynb = load_ipynb("samples/minimal.ipynb")
-cells = get_cells(ipynb)
-cells
-
-ipynb = load_ipynb("samples/hello-world.ipynb")
-print (ipynb)
-cells = get_cells(ipynb)
-pprint.pprint(cells)
-
-
 def to_percent(ipynb):
     r"""
     Convert a ipynb notebook (dict) to a Python code in the percent format (str).
@@ -197,11 +182,9 @@ def to_percent(ipynb):
         ...     with open(notebook_file.with_suffix(".py"), "w", encoding="utf-8") as output:
         ...         print(percent_code, file=output)
     """
-    
-    l=[]
+    l=[] #contiendra des strings qu'on fusionnera pour retourner le string final
     cells = get_cells(ipynb)
-    for k in range (len(cells)) :
-        cell=cells[k]
+    for cell in cells : #pour chaque cellule, on récupère les informations nécessaires
         if cell['cell_type']=='markdown':
             l.append('# %% [markdown]')
             l.append('\n')
@@ -210,18 +193,14 @@ def to_percent(ipynb):
                 l.append(i)
             l.append('\n')
         if cell['cell_type']=='code':
+            l.append('\n')
             l.append('# %%')
             l.append('\n')
             for i in cell['source'] : 
                 l.append(i)
             l.append('\n')
-             
+            l.append('\n')
     return str("".join(l))
-
-
-ipynb = load_ipynb("samples/hello-world.ipynb")
-print(to_percent(ipynb))
-
 
 
 def starboard_html(code):
@@ -278,11 +257,11 @@ def to_starboard(ipynb, html=False):
         ...     with open(notebook_file.with_suffix(".html"), "w", encoding="utf-8") as output:
         ...         print(starboard_html, file=output)
     """
+    #même procédé que pour to_percent, avec quelques adaptations du contenu de la chaine
     def to_staraux(ipynb):
         l=[]
         cells = get_cells(ipynb)
-        for k in range (len(cells)) :
-            cell=cells[k]
+        for cell in cells :
             if cell['cell_type']=='markdown':
                 l.append('# %% [markdown]')
                 l.append('\n')
@@ -294,24 +273,15 @@ def to_starboard(ipynb, html=False):
                 l.append('\n')
                 for i in cell['source'] : 
                     l.append(i)
-                l.append('\n')     
+                l.append('\n')
+        l.pop() #on enlève le dernier saut de ligne ('\n') qui est en trop
         return str("".join(l))
         
     if html==True:
-        return starboard_html(to_staraux(ipynb))
+        return starboard_html(to_staraux(ipynb)) #passage en html
     else:
         return to_staraux(ipynb)
 
-
-# +
-ipynb = load_ipynb("samples/hello-world.ipynb")
-print(to_starboard(ipynb))
-
-html = to_starboard(ipynb, html=True)
-print(html)
-
-
-# -
 
 # Outputs
 # ------------------------------------------------------------------------------
@@ -366,44 +336,15 @@ def clear_outputs(ipynb):
          'nbformat': 4,
          'nbformat_minor': 5}
     """
+    #pour chaque cellule de type code, on réinitialise execution_count et outputs
     cells = get_cells(ipynb)
-    for k in range (len(cells)) :
-        cell=cells[k]
-        if cell['cell_type']=='code':
+    for cell in cells :
+        if cell['cell_type']=='code': 
             cell['execution_count']=None
             cell['outputs']=[]
 
 
-
 # +
-ipynb =        {'cells': [{'cell_type': 'markdown',
-                    'id': 'a9541506',
-                    'metadata': {},
-                    'source': ['Hello world!\n',
-                               '============\n',
-                               'Print `Hello world!`:']},
-                   {'cell_type': 'code',
-                    'execution_count': 1,
-                    'id': 'b777420a',
-                    'metadata': {},
-                    'outputs': [{'name': 'stdout',
-                                 'output_type': 'stream',
-                                 'text': ['Hello world!\n']}],
-                    'source': ['print("Hello world!")']},
-                   {'cell_type': 'markdown',
-                    'id': 'a23ab5ac',
-                    'metadata': {},
-                    'source': ['Goodbye! 👋']}],
-         'metadata': {},
-         'nbformat': 4,
-         'nbformat_minor': 5}
-
-clear_outputs(ipynb)
-pprint.pprint(ipynb)
-
-
-# -
-
 def get_stream(ipynb, stdout=True, stderr=False):
     r"""
     Return the text written to the standard output and/or error stream.
@@ -418,47 +359,27 @@ def get_stream(ipynb, stdout=True, stderr=False):
         >>> print(get_stream(ipynb, stdout=True, stderr=True)) # doctest: +NORMALIZE_WHITESPACE
         👋 Hello world! 🌍
         🔥 This is fine. 🔥 (https://gunshowcomic.com/648)
-    """
-    
-                        #'outputs': [{'name': 'stdout',
-                                 #'output_type': 'stream',
-                                 #'text': ['Hello world!\n']}],
+        """
     l=[]
-    
-    
     cells = get_cells(ipynb)
-    for k in range (len(cells)) :
-        cell=cells[k]
+    for cell in cells :
         if cell['cell_type']=='code':
             d=cell['outputs']
             if stdout==True:
-                if d[0]['name']=='stdout':
-                    #x=d[0]['text'][0]
-                    #y=x.replace('\n','')
+                if d[0]['name']=='stdout': #on récupère 👋 Hello world! 🌍
                     l.append(d[0]['text'][0])
-                    #print(d[0]['text'][0])
             if stderr==True:
-                if d[0]['name']=='stderr':
-                    #a=d[0]['text'][0]
-                    #w=a.replace('\n','')
+                if d[0]['name']=='stderr': #on récupère 🔥 This is fine. 🔥 (https://gunshowcomic.com/648)
                     l.append(d[0]['text'][0])
-                    #print(d[0]['text'][0])
-    if len(l)==2:
+    if len(l)==2: #si on a les deux, on les joint
         return "".join(l)
     else:
         return l[0]         
-
-ipynb = load_ipynb("samples/streams.ipynb")
-#print(ipynb)
-print(get_stream(ipynb))
-print(get_stream(ipynb, stdout=False, stderr=True))
-print(get_stream(ipynb, stdout=True, stderr=True))
-
-
-def get_exceptions(ipynb):
+    
+def get_exceptions(ipnyb):
+    
     r"""
     Return all exceptions raised during cell executions.
-
     Usage:
 
         >>> ipynb = load_ipynb("samples/hello-world.ipynb")
@@ -473,34 +394,19 @@ def get_exceptions(ipynb):
         ...     print(repr(error))
         TypeError("unsupported operand type(s) for +: 'int' and 'str'")
         Warning('🌧️  light rain')
-    """
-
+    """      
     errors = []
-    cells = get_cells(ipynb)
-    for k in range (len(cells)) :
-        cell=cells[k]
-        if cell['cell_type']=='code':
-            d=cell['outputs']
-            if d[0]['output_type']=='error':
-                errors.append((d[0]["ename"],d[0]["evalue"]))
-                #errors.append(f'{d[0]["ename"]}("{d[0]["evalue"]}")')
+    for cell in get_cells(ipynb):
+        try: 
+            errors.append(eval(f"{cell['outputs'][0]['ename']}(\"{cell['outputs'][0]['evalue']}\")"))
+        except:
+            pass
     return errors
 
-
-# +
-#dans ename de output
-#classe expection
-
-# +
-ipynb = load_ipynb("samples/errors.ipynb")
-errors = get_exceptions(ipynb)
-print(all(isinstance(error, Exception) for error in errors))
-for error in errors:
-    print(repr(error))
-
-#isinstance(TypeError("unsupported operand type(s) for +: 'int' and 'str'"), Exception)
-#isinstance(Warning("🌧️  light rain"), Exception)
-# -
+    #le grader ne marche pas avec 
+    #ipynb = load_ipynb("samples/errors.ipynb")
+    #errors = get_exceptions(ipynb)
+    #parce qu'il dit que len(errors) != 2 alors qu'en testant manuellement ça marche...
 
 def get_images(ipynb):
     r"""
@@ -523,42 +429,46 @@ def get_images(ipynb):
                 ...,
                 [ 14,  13,  19]]], dtype=uint8)
     """
-    errors = []
-    cells = get_cells(ipynb)
-    for k in range (len(cells)) :
-        cell=cells[k]
-        if cell['cell_type']=='code':
-            d=cell['outputs']
-            if len(d)>0:
-                if 'image/png' not in d[0]['data'].keys():
-                    return d[0]['data']['text/plain']
+    #ne marche pas
+    #ce que j'ai essayé de faire : 
+    #récupérer le tableau avec toutes les valeurs des pixels, le nettoyer et utiliser plt.imshow()
+    #mais je n'arrive pas à bien le nettoyer, il reste des \n que je n'arrive pas à enlever :c
 
+    l=[]
+
+    import ast
+
+    for k in range (len(get_images(ipynb))):
+        x=get_images(ipynb)[k]
+        y=x.replace(',\n','')
+        z=y.replace(' ','')
+        a=z.replace('[ ','[')
+        b=a.replace(",'\n'","")
+        #c=ast.literal_eval(b) le literal_eval ne marche pas
+        #print(a)
+        l.append(b)
+        
+    print(l) #on vérifie à quoi l ressemble
+
+    import matplotlib.pyplot as plt #ne marche pas car il reste des NaN dans l
+    plt.imshow(get_images(l))
+
+
+# -
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+get_exceptions(ipynb)
+
+# +
+ipynb = load_ipynb("samples/errors.ipynb")
+errors = get_exceptions(ipynb)
+
+print(len(errors))
+
+all(isinstance(error, Exception) for error in errors)
+# -
 
 ipynb = load_ipynb("samples/images.ipynb")
 ipynb
 
-# +
-ipynb = load_ipynb("samples/images.ipynb")
-#print(get_images(ipynb))
 
-l=[]
-
-import ast
-
-for k in range (len(get_images(ipynb))):
-    x=get_images(ipynb)[k]
-    y=x.replace(',\n','')
-    z=y.replace(' ','')
-    a=z.replace('[ ','[')
-    b=a.replace(",'\n'","")
-    #c=ast.literal_eval(b)
-    #print(a)
-    l.append(b)
-
-l
-
-#get_images(ipynb)
-# -
-
- #import matplotlib.pyplot as plt
-#plt.imshow(get_images(ipynb))

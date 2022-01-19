@@ -35,12 +35,6 @@ class CodeCell:
         self.source = source
         self.type = 'code'
 
-code_cell = CodeCell("b777420a", ['print("Hello world!")'], 1)
-code_cell.id
-code_cell.execution_count
-code_cell.source
-
-
 class MarkdownCell:
     r"""A Cell of Markdown markup in a Jupyter notebook.
 
@@ -68,12 +62,9 @@ class MarkdownCell:
         self.id = id
         self.source = source
         self.type = 'markdown'
-        #super().__init__(id, source)
-
-markdown_cell = MarkdownCell("a9541506", ["Hello world!","============","Print `Hello world!`:"])
-markdown_cell.id
-markdown_cell.source
-
+        #super().__init__(id, source) 
+        
+        #le super().__init__ donné par le sujet ne marche pas
 
 class Notebook:
     r"""A Jupyter Notebook
@@ -136,26 +127,22 @@ class NotebookLoader:
     """
     def __init__(self, filename):
         self.filename = filename
-        
+
     def load(self):
         r"""Loads a Notebook instance from the file.
         """
+        #on transforme le notebook en dictionnaire pour l'utiliser plus facilement
         import json
-        with open (self.filename) as json_data: 
-            d = json.load(json_data)
-        l=[]
+        with open (self.filename) as file : 
+            d = json.load(file)
+        cells=[] #contiendra les cellules
         for cell in d['cells']:
             if cell['cell_type'] == 'code':
-                l.append(CodeCell(cell['id'], cell['source'], cell['execution_count']))
+                cells.append(CodeCell(cell['id'], cell['source'], cell['execution_count']))
             else :
-                l.append(MarkdownCell(cell['id'], cell['source']))
+                cells.append(MarkdownCell(cell['id'], cell['source']))
         version = f"{d['nbformat']}.{d['nbformat_minor']}"
-        return Notebook(version, l)
-
-nbl = NotebookLoader("samples/hello-world.ipynb")
-nb = nbl.load()
-nb.version
-
+        return Notebook(version, cells)
 
 class Markdownizer:
     r"""Transforms a notebook to a pure markdown notebook.
@@ -185,26 +172,20 @@ class Markdownizer:
     def markdownize(self):
         r"""Transforms the notebook to a pure markdown notebook.
         """
-        l=[]
-        l2=[]
+        cells=[] #contient les cellules
+        unformatted_cell=[] #contient les informations d'une cellule avec la mise en forme voulue
         for cell in self.notebook:
             if(isinstance(cell, MarkdownCell)):
-                l.append(cell)
+                cells.append(cell)
             else:
-                l2.append("``` python\n")
-                l2=l2+cell.source
-                x=l2.pop()
+                unformatted_cell.append("``` python\n")
+                unformatted_cell=unformatted_cell+cell.source
+                x=unformatted_cell.pop()
                 x=x+"\n"
-                l2.append(x)
-                l2.append("```")
-                l.append(MarkdownCell(cell.id, l2))
-        return Notebook(self.notebook.version, l)
-
-nb = NotebookLoader("samples/hello-world.ipynb").load()
-nb2 = Markdownizer(nb).markdownize()
-for cell in nb2:
-    print(cell.id)
-
+                unformatted_cell.append(x)
+                unformatted_cell.append("```")
+                cells.append(MarkdownCell(cell.id, unformatted_cell))
+        return Notebook(self.notebook.version, cells)
 
 class MarkdownLesser:
     r"""Removes markdown cells from a notebook.
@@ -230,11 +211,12 @@ class MarkdownLesser:
         Returns:
             Notebook: a Notebook instance with only code cells
         """
-        l=[]
+        code_cells=[]
         for cell in self.notebook:
+            #si la cellule est du code, on la garde
             if isinstance(cell, CodeCell):
-                l.append(cell)
-        return Notebook(self.notebook.version, l)
+                code_cells.append(cell)
+        return Notebook(self.notebook.version, code_cells)
 
 class PyPercentLoader:
     r"""Loads a Jupyter Notebook from a py-percent file.
@@ -266,4 +248,4 @@ class PyPercentLoader:
     def load(self):
         r"""Loads a Notebook instance from the py-percent file.
         """
-  
+        pass

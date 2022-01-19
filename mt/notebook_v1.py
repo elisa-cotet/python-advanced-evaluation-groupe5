@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from notebook_v0 import *
+
+import notebook_v0 as toolbox #utile pour les tests du grader
+from notebook_v0 import to_percent
+from notebook_v0 import load_ipynb
+from notebook_v0 import get_cells
+import pprint
+
 """
 an object-oriented version of the notebook toolbox
 """
 
-# +
-class Cell:
+class Cell: #on définit une classe commune Cell pour que les IsInstance(x,Cell) fonctionnent
     
     def __init__(self):
         pass
@@ -42,22 +47,7 @@ class CodeCell(Cell):
         self.id=ipynb["id"]
         self.execution_count=ipynb["execution_count"]
         self.source=ipynb["source"]
-        self.type=ipynb["cell_type"]
-
-# +
-code_cell = CodeCell({
-        "cell_type": "code",
-        "execution_count": 1,
-        "id": "b777420a",
-        'source': ['print("Hello world!")']
-        })
-
-code_cell.id
-code_cell.execution_count
-code_cell.source
-
-
-# -
+        self.type=ipynb["cell_type"]       
 
 class MarkdownCell(Cell):
     r"""A Cell of Markdown markup in a Jupyter notebook.
@@ -91,22 +81,6 @@ class MarkdownCell(Cell):
         self.source=ipynb["source"]
         self.type=ipynb["cell_type"]
 
-# +
-markdown_cell = MarkdownCell({
-        "cell_type": "markdown",
-        "id": "a9541506",
-        "source": [
-        "Hello world!\n",
-        "============\n",
-        "Print `Hello world!`:"
-        ]
-        })
-
-markdown_cell.id
-markdown_cell.source
-
-
-# +
 class Notebook:
     r"""A Jupyter Notebook.
 
@@ -138,12 +112,12 @@ class Notebook:
 
     def __init__(self, ipynb):
         self.version=f"{ipynb['nbformat']}.{ipynb['nbformat_minor']}"
-        self.cells_list=[]
+        self.cells=[]
         for cell in ipynb['cells']:
             if cell['cell_type']=='code':
-                self.cells_list.append(CodeCell(cell))
+                self.cells.append(CodeCell(cell))
             elif cell['cell_type']=='markdown':
-                self.cells_list.append(MarkdownCell(cell))
+                self.cells.append(MarkdownCell(cell))
 
     @staticmethod
     def from_file(filename):
@@ -156,7 +130,7 @@ class Notebook:
             '4.5'
         """
         return Notebook(load_ipynb(filename))
-    
+
     def __iter__(self):
         r"""Iterate the cells of the notebook.
 
@@ -169,21 +143,29 @@ class Notebook:
             b777420a
             a23ab5ac
         """
-        return iter(self.cells_list)
-    
+        return iter(self.cells)
 
+    def serialize(self):
+        r"""Serializes the notebook to a JSON object
 
-
-# -
-
-ipynb = load_ipynb("samples/hello-world.ipynb")
-nb = Notebook(ipynb)
-isinstance(nb.cells_list, list)
-isinstance(nb.cells_list[0], Cell)
-
-nb = Notebook.from_file("samples/hello-world.ipynb")
-for cell in nb :
-    print(cell.id)
+        Returns:
+            dict: a dictionary representing the notebook.
+        """
+        dic={} 
+        cells=self.nb.cells 
+        dic_cells=[] #liste qui contiendra au fur et à mesure dic['cells']
+        for cell in cells: 
+            if cell.type == "markdown": 
+                new_cell={'cell_type': cell.type, 'id': cell.id, 'metadata': {}, 'source':cell.source} 
+            if cell.type == "code": 
+                new_cell={'cell_type': cell.type, 'execution count':cell.execution_count, 'id': cell.id, 'metadata':{}, 'outputs':[], 'source': cell.source } 
+            dic_cells.append(new_cell) 
+        dic['cells']=dic_cells
+        dic['metadata'] ={} 
+        format = self.nb.version.split('.') 
+        dic['nbformat']=int(format[0]) 
+        dic['nbformat_minor']=int(format[1]) 
+        return dic 
 
 
 # +
@@ -214,27 +196,27 @@ class PyPercentSerializer:
     def to_py_percent(self):
         r"""Converts the notebook to a string in py-percent format.
         """
-        l=[]
-        cells = get_cells(ipynb)
-        for k in range (len(cells)) :
-            cell=cells[k]
-            if cell['cell_type']=='markdown':
+        l=[] #liste qui contiendra les éléments de la future chaine
+        #cells = get_cells(self.notebook)
+        for cell in self.notebook.cells:
+            if isinstance(cell, MarkdownCell):
                 l.append('# %% [markdown]')
                 l.append('\n')
-                for i in cell['source'] : 
+                for i in cell.source : 
                     l.append('# ')
                     l.append(i)
                 l.append('\n')
-            if cell['cell_type']=='code':
-                l.append('<BLANKLINE>')
+            if isinstance(cell, CodeCell):
+                #l.append('<BLANKLINE>')
                 l.append('\n')
                 l.append('# %%')
                 l.append('\n')
-                for i in cell['source'] : 
+                for i in cell.source : 
                     l.append(i)
                 l.append('\n')
-                l.append('<BLANKLINE>')
+                #l.append('<BLANKLINE>')
                 l.append('\n')
+        l.pop()
              
         return str("".join(l))
 
@@ -251,8 +233,8 @@ class PyPercentSerializer:
                 >>> s.to_file("samples/hello-world-serialized-py-percent.py")
         """
         with open(filename, 'w') as fp:
-            json.dump(ipynb, fp)
-    
+            file.write(self.to_py_percent())
+            
     
 class Serializer:
     r"""Serializes a Jupyter Notebook to a file.
@@ -289,21 +271,62 @@ class Serializer:
 
     def __init__(self, notebook):
         self.notebook=notebook
+        
+        #première version de serialize(self), marche en testant manuellement avec pprint, mais pas dans le grader 
+        
+     #def serialize(self):
+        r"""Serializes the notebook to a JSON object
 
+        Returns:
+            dict: a dictionary representing the notebook.
+        """
+        #nb=self.notebook
+        #d = {"nbformat": 4, "nbformat_minor": 5, "metadata": {}}
+        #d['cells']=[]
+        #for cell in nb :
+            #cell1 = {'cell_type': cell.type,'id': cell.id,'metadata' : {}, 'source': cell.source}
+            #if cell.type == 'code' :
+                #cell1['execution_count'] = cell.execution_count
+                #cell1['outputs']=[]
+            #d['cells'].append(cell1) 
+        #return d
+
+        #deuxième version de serialize(self), marche avec le grader
+        
     def serialize(self):
-        d = {"nbformat": nb.version.split('.')[0], "nbformat_minor": nb.version.split('.')[1], "metadata": {}}
+        r"""Serializes the notebook to a JSON object
+
+        Returns:
+            dict: a dictionary representing the notebook.
+        """
+        nb=self.notebook
+        d={}
+        #on commence par construire d['cells'] à partir des cellules du notebook
         d['cells']=[]
         for cell in nb :
-            #if cell.cell_type=='code' :
-                #cell1 = {'metadata' : {}, 'cell_type': CodeCell, 'source': cell.source, 'id': cell.id}
-            #else :
-                #cell1 = {'metadata' : {}, 'cell_type': MarkdownCell, 'source': cell.source, 'id': cell.id}
-            cell1 = {'metadata' : {}, 'cell_type': cell.type, 'source': cell.source, 'id': cell.id}
+            new_cell = {'cell_type': cell.type}
             if cell.type == 'code' :
-                cell1['execution_count'] = cell.execution_count
-            d['cells'].append(cell1)
-        return d 
-    
+                new_cell['execution_count'] = cell.execution_count
+            new_cell['id']=cell.id
+            new_cell['medatada']={}
+            if cell.type == 'code' :
+                new_cell['outputs']=[] 
+            new_cell['source']=cell.source
+            d['cells'].append(new_cell)  
+            
+        #j'utilise deux 'if' au lieu d'un, sinon les clés du dict ne sont pas dans le bon ordre
+        
+        #puis on ajoute les autres caractéristiques du notebook au nouveau dictionnaire 
+
+        new_d={}
+        new_d['cells']=d['cells']
+        new_d['metadata']={}
+        new_d['nbformat']=4
+        new_d['nbformat_minor']=5
+
+        return new_d
+        
+
     def to_file(self, filename):
         r"""Serializes the notebook to a file
 
@@ -329,12 +352,14 @@ class Serializer:
         a_file = open("data.pkl", "rb")
         output = pickle.load(a_file)
         print(output)
+        
+    def serialize_JSON(self):
+        r"""Serializes the notebook to a JSON object
 
-# +
-nb = Notebook.from_file("samples/hello-world.ipynb")
-s=Serializer(nb)
-
-pprint.pprint(s.serialize())
+        Returns:
+            dict: a dictionary representing the notebook.
+        """
+        return Serializer.serializeNotebook(self.notebook)
 # -
 
 nb = Notebook.from_file("samples/hello-world.ipynb")
@@ -363,17 +388,14 @@ class Outliner:
                 └─▶ Markdown cell #a23ab5ac
                     | Goodbye! 👋
     """
+    
+    
     def __init__(self, notebook):
         self.notebook = notebook
-
+        
     @staticmethod    
     def outline_aux(notebook):
-        r"""Outlines the notebook in a readable format.
-
-        Returns:
-            str: a string representing the outline of the notebook.
-        """
-        
+        nb=notebook
         l=[]
         l.append(f'Jupyter Notebook v{nb.version}\n')
         for cell in nb:
@@ -396,10 +418,10 @@ class Outliner:
                 l.append('\n')
             elif(len(cell.source) == 1):
                 x=cell.source[0].replace("\n","")
-                l.append(f'    │  {x}')
+                l.append(f'    | {x}')
                 l.append('\n')
+        l.pop() #on enlève le dernier \n qui est en trop
         return str("".join(l))
-        
 
     def outline(self):
         r"""Outlines the notebook in a readable format.
@@ -408,10 +430,3 @@ class Outliner:
             str: a string representing the outline of the notebook.
         """
         return Outliner.outline_aux(self.notebook)
-
-
-nb = Notebook.from_file("samples/hello-world.ipynb")
-o = Outliner(nb)
-print(o.outline())
-
-

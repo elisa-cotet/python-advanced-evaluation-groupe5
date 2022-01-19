@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 Help on module notebook_v0:
 
 NAME
