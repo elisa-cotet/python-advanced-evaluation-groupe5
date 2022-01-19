@@ -218,6 +218,82 @@ class MarkdownLesser:
                 code_cells.append(cell)
         return Notebook(self.notebook.version, code_cells)
 
+
+
+
+# on reprend la classe PyPercentSerializer faite dans le notebook v1 parce qu'on en a besoin pour la dernière question
+
+class PyPercentSerializer:
+    r"""Prints a given Notebook in py-percent format.
+
+    Args:
+        notebook (Notebook): the notebook to print.
+
+    Usage:
+            >>> nb = Notebook.from_file("samples/hello-world.ipynb")
+            >>> ppp = PyPercentSerializer(nb)
+            >>> print(ppp.to_py_percent()) # doctest: +NORMALIZE_WHITESPACE
+            # %% [markdown]
+            # Hello world!
+            # ============
+            # Print `Hello world!`:
+            <BLANKLINE>
+            # %%
+            print("Hello world!")
+            <BLANKLINE>
+            # %% [markdown]
+            # Goodbye! 👋
+    """
+    def __init__(self, notebook):
+        self.notebook=notebook
+
+    def to_py_percent(self):
+        r"""Converts the notebook to a string in py-percent format.
+        """
+        l=[] #liste qui contiendra les éléments de la future chaine
+        #cells = get_cells(self.notebook)
+        for cell in self.notebook.cells:
+            if isinstance(cell, MarkdownCell):
+                l.append('# %% [markdown]')
+                l.append('\n')
+                for i in cell.source : 
+                    l.append('# ')
+                    l.append(i)
+                l.append('\n')
+            if isinstance(cell, CodeCell):
+                #l.append('<BLANKLINE>')
+                l.append('\n')
+                l.append('# %%')
+                l.append('\n')
+                for i in cell.source : 
+                    l.append(i)
+                l.append('\n')
+                #l.append('<BLANKLINE>')
+                l.append('\n')
+        l.pop()
+             
+        return str("".join(l))
+
+    def to_file(self, filename):
+        r"""Serializes the notebook to a file
+
+        Args:
+            filename (str): the name of the file to write to.
+
+        Usage:
+
+                >>> nb = Notebook.from_file("samples/hello-world.ipynb")
+                >>> s = PyPercentSerializer(nb)
+                >>> s.to_file("samples/hello-world-serialized-py-percent.py")
+        """
+        with open(filename, 'w') as file:
+            file.write(self.to_py_percent())
+
+
+
+
+
+
 class PyPercentLoader:
     r"""Loads a Jupyter Notebook from a py-percent file.
 
@@ -248,4 +324,23 @@ class PyPercentLoader:
     def load(self):
         r"""Loads a Notebook instance from the py-percent file.
         """
-        pass
+        file = open(self.filename, 'r')
+        lines = file.readlines()
+        toconvert_cells = []
+        current = [lines[0]]
+        i = 1
+        while i < len(lines) :
+            if len(lines[i]) > 4 : 
+                    if lines[i][:4] == "# %%":
+                        toconvert_cells.append(current)
+            current = []
+            current.append(lines[i])
+            i += 1
+        toconvert_cells.append(current)
+        cellslist=[]
+        for cell in toconvert_cells : 
+            if cell[0] == "# %% \n":
+                cellslist.append(CodeCell('id', cell[1:], 0))
+            elif(cell[0] == "# %% [markdown] \n"):
+                cellslist.append(MarkdownCell('id', cell[1:]))
+        return Notebook(self.version, cellslist)
